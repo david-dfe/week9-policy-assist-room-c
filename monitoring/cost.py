@@ -7,6 +7,7 @@ no hardcoded numbers (CLAUDE.md §9 rule 3).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -36,9 +37,18 @@ class ModelPrices:
 
 
 def load_prices(path: Path | str | None = None) -> dict[str, ModelPrices]:
-    """Load model prices from ``prices.yaml`` (or a caller-provided path)."""
+    """Load model prices from ``prices.yaml`` (or a caller-provided path).
+
+    Results are cached per resolved path so the YAML is not re-parsed on
+    every LLM call. The returned dict is shared — treat it as read-only.
+    """
     p = Path(path) if path is not None else DEFAULT_PRICES_PATH
-    with p.open() as f:
+    return _load_prices_cached(p)
+
+
+@lru_cache(maxsize=8)
+def _load_prices_cached(path: Path) -> dict[str, ModelPrices]:
+    with path.open(encoding="utf-8") as f:
         raw: dict[str, dict[str, float]] = yaml.safe_load(f) or {}
     return {model: ModelPrices(**vals) for model, vals in raw.items()}
 
