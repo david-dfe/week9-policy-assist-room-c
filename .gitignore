@@ -216,3 +216,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project-specific ---
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+
+# PolicyAssist prototype local state — never commit real data
+policyassist/chat_log.json
+chat_log.json
+
+# SigNoz local data
+signoz/data/
+signoz/logs/
+signoz/deploy/data/
+docker-compose.override.yml
