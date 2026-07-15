@@ -10,6 +10,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.trace import SpanKind
 
 from monitoring.instrumentation import traced_llm_call
 
@@ -97,3 +98,11 @@ class TestTracedLLMCall:
         span_data = span_capture.get_finished_spans()[0]
         assert span_data.attributes is not None
         assert span_data.attributes["app.custom"] == "value"
+
+    def test_span_kind_is_client(self, span_capture: InMemorySpanExporter) -> None:
+        """LLM calls are outbound network calls — SpanKind.CLIENT is required for
+        SigNoz to render them as external dependencies in service maps."""
+        with traced_llm_call("claude-haiku-4-5"):
+            pass
+        span = span_capture.get_finished_spans()[0]
+        assert span.kind == SpanKind.CLIENT

@@ -22,7 +22,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.trace import Span, Status, StatusCode
+from opentelemetry.trace import Span, SpanKind, Status, StatusCode
 
 from monitoring.cost import Usage, compute_cost, usage_from_response
 
@@ -102,7 +102,7 @@ def traced_llm_call(
             span.record_usage(response)
     """
     tracer = trace.get_tracer(_TRACER_NAME)
-    with tracer.start_as_current_span("llm.invoke") as raw_span:
+    with tracer.start_as_current_span("llm.invoke", kind=SpanKind.CLIENT) as raw_span:
         raw_span.set_attribute("gen_ai.system", system)
         raw_span.set_attribute("gen_ai.request.model", model)
         if session_id is not None:
