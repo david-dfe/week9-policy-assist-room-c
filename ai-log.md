@@ -24,6 +24,7 @@ Two commits on the branch:
 
 ---
 
+
 ## 2026-07-15 14:15 — CI hardened with security best practices
 
 **Author:** claude (on behalf of david-dfe)
@@ -56,7 +57,6 @@ Applied a first pass of GitHub Actions security best practices to the CI workflo
 - Update branch protection rule for `main`: set the single required status check to `ci-status` (the aggregate job) rather than listing every matrix cell.
 
 ---
-
 
 ## 2026-07-15 13:45 — Repo hardening branch pushed for review
 
