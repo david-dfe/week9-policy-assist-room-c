@@ -10,6 +10,31 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-15 13:45 — Repo hardening branch pushed for review
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `chore/repo-hardening` — PR pending push
+**Type:** progress
+
+Added the tooling scaffolding promised by `CLAUDE.md` §6–§7:
+
+- `pyproject.toml` — ruff (lint + format, line 100, py312 target, standard rulepack), mypy (strict), pytest (with coverage, `--cov-fail-under=80` on `monitoring/`), bandit config. Pins runtime deps (Flask, langchain-anthropic, OTel SDK/API/OTLP-http exporter, pyyaml) and a `dev` extras group.
+- `.pre-commit-config.yaml` — same ruff/mypy/gitleaks checks locally as CI, plus hygiene hooks and a `no-commit-to-branch main` guard.
+- `commitlint.config.js` — Conventional Commits enforced.
+- `.github/workflows/ci.yml` — six jobs (lint / types / test / security / secrets / commitlint). All use `astral-sh/setup-uv` and `uv sync --extra dev`.
+- `.github/pull_request_template.md` and `.github/CODEOWNERS`.
+- `.editorconfig`, `.env.example`, `README.md`, and gitignore updates.
+- Empty `monitoring/` package + one sanity test so CI has something to verify — real code lands via `feat/monitoring-service`.
+
+**Notable choices:**
+- **uv over pip.** CI uses uv for reproducibility; local dev can use uv or plain pip via the same `pyproject.toml`. `uv.lock` will be generated and committed in the next PR when the first real dependency lands.
+- **mypy strict.** Better to fight it now than to unpick a lax type story later. Overrides ignore-missing-imports for `langchain_anthropic` and `langchain_core` because those don't ship type stubs.
+- **No merge commits guarded three ways.** GitHub branch protection ("require linear history"), local pre-commit `no-commit-to-branch main`, and CLAUDE.md documentation.
+
+**Handover:** review the branch, merge via rebase, then flip the branch-protection settings if not already done. Next work is `feat/monitoring-service` per `plan.md` §4.
+
+---
+
 ## 2026-07-15 13:34 — Repo initialised and pushed to GitHub
 
 **Author:** claude (on behalf of david-dfe)
