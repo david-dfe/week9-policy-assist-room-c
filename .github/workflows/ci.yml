@@ -4,20 +4,36 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+# Least-privilege default. Individual jobs elevate as needed.
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# TODO(security): pin third-party actions to full commit SHAs.
+# We currently pin to minor versions (e.g. @v4.2.2). Moving to SHA
+# pinning defends against tag hijacking — see
+# https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+
 jobs:
   lint:
     name: lint (ruff)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v3
         with:
           python-version: "3.12"
+          enable-cache: true
       - name: Install deps
         run: uv sync --extra dev
       - name: ruff check
@@ -28,37 +44,66 @@ jobs:
   types:
     name: types (mypy)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v3
         with:
           python-version: "3.12"
+          enable-cache: true
       - name: Install deps
         run: uv sync --extra dev
       - name: mypy
         run: uv run mypy monitoring
 
   test:
-    name: test (pytest + coverage)
+    name: test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
       - name: Install deps
         run: uv sync --extra dev
       - name: pytest
-        run: uv run pytest --cov-fail-under=80
+        run: uv run pytest --cov-fail-under=80 --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7
 
   security:
     name: security (bandit + pip-audit)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@v3
         with:
           python-version: "3.12"
+          enable-cache: true
       - name: Install deps
         run: uv sync --extra dev
       - name: bandit
@@ -69,10 +114,14 @@ jobs:
   secrets:
     name: secrets (gitleaks)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,9 +129,35 @@ jobs:
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@v6
+          persist-credentials: false
+      - uses: wagoid/commitlint-github-action@v6.2.1
+
+  # Single aggregate check — set this as the one required status in
+  # branch protection instead of adding every matrix cell individually.
+  # Skipped jobs (e.g. commitlint on non-PR events) count as pass.
+  ci-status:
+    name: ci-status
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, types, test, security, secrets, commitlint]
+    steps:
+      - name: Fail if any needed job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One or more required CI jobs failed:"
+          echo "  lint       = ${{ needs.lint.result }}"
+          echo "  types      = ${{ needs.types.result }}"
+          echo "  test       = ${{ needs.test.result }}"
+          echo "  security   = ${{ needs.security.result }}"
+          echo "  secrets    = ${{ needs.secrets.result }}"
+          echo "  commitlint = ${{ needs.commitlint.result }}"
+          exit 1
