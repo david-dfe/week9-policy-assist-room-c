@@ -90,3 +90,38 @@ class TestRoutes:
         # Haiku should be cheaper than the default Sonnet.
         default = client.get("/api/projection").get_json()
         assert data["monthly_naive_gbp"] < default["monthly_naive_gbp"]
+
+
+class TestValidation:
+    """Bad query params must return 400, not 500 (or worse, a silent nonsense
+    projection). This is the page leadership sees — it needs to fail loudly on
+    malformed input."""
+
+    def test_non_numeric_int_field_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?queries_per_day=abc")
+        assert resp.status_code == 400
+
+    def test_non_numeric_float_field_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?cache_hit_ratio=maybe")
+        assert resp.status_code == 400
+
+    def test_unknown_model_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?model=made-up-model")
+        assert resp.status_code == 400
+
+    def test_negative_queries_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?queries_per_day=-1")
+        assert resp.status_code == 400
+
+    def test_cache_hit_ratio_below_zero_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?cache_hit_ratio=-0.5")
+        assert resp.status_code == 400
+
+    def test_cache_hit_ratio_above_one_returns_400(self, client: FlaskClient) -> None:
+        resp = client.get("/api/projection?cache_hit_ratio=1.5")
+        assert resp.status_code == 400
+
+    def test_index_returns_400_on_bad_input(self, client: FlaskClient) -> None:
+        # Same validation must apply to the HTML page, not just the JSON endpoint.
+        resp = client.get("/?model=made-up-model")
+        assert resp.status_code == 400

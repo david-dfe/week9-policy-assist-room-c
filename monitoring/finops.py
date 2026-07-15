@@ -22,9 +22,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, replace
 from typing import Any
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, abort, jsonify, render_template_string, request
 
-from monitoring.cost import Usage, compute_cost
+from monitoring.cost import Usage, compute_cost, load_prices
 
 
 @dataclass(frozen=True)
@@ -86,24 +86,63 @@ def compute_projection(a: WorkloadAssumptions) -> Projection:
     )
 
 
+class _AssumptionError(ValueError):
+    """Query-param override failed validation. Rendered as HTTP 400."""
+
+
+_FIELD_TYPES: dict[str, type] = {
+    "queries_per_day": int,
+    "working_days_per_month": int,
+    "system_prompt_tokens": int,
+    "history_tokens_per_request": int,
+    "user_question_tokens": int,
+    "response_tokens": int,
+    "cache_hit_ratio": float,
+    "model": str,
+}
+
+_NON_NEGATIVE_INT_FIELDS = (
+    "queries_per_day",
+    "working_days_per_month",
+    "system_prompt_tokens",
+    "history_tokens_per_request",
+    "user_question_tokens",
+    "response_tokens",
+)
+
+
 def _assumptions_from_request() -> WorkloadAssumptions:
-    """Read overrides from query params, keeping defaults for what isn't provided."""
+    """Read overrides from query params, keeping defaults for what isn't provided.
+
+    Raises ``_AssumptionError`` on any invalid input — route handlers turn
+    that into HTTP 400 so bad URLs surface as bad requests, not 500s.
+    """
     defaults = WorkloadAssumptions()
     updates: dict[str, Any] = {}
-    for field_name, field_type in {
-        "queries_per_day": int,
-        "working_days_per_month": int,
-        "system_prompt_tokens": int,
-        "history_tokens_per_request": int,
-        "user_question_tokens": int,
-        "response_tokens": int,
-        "cache_hit_ratio": float,
-        "model": str,
-    }.items():
+    for field_name, field_type in _FIELD_TYPES.items():
         raw = request.args.get(field_name)
-        if raw is not None:
+        if raw is None:
+            continue
+        try:
             updates[field_name] = field_type(raw)
-    return replace(defaults, **updates)
+        except (TypeError, ValueError) as exc:
+            raise _AssumptionError(f"invalid value for {field_name!r}: {raw!r}") from exc
+
+    assumptions = replace(defaults, **updates)
+    _validate(assumptions)
+    return assumptions
+
+
+def _validate(a: WorkloadAssumptions) -> None:
+    for name in _NON_NEGATIVE_INT_FIELDS:
+        if getattr(a, name) < 0:
+            raise _AssumptionError(f"{name} must be >= 0")
+    if not 0.0 <= a.cache_hit_ratio <= 1.0:
+        raise _AssumptionError("cache_hit_ratio must be between 0 and 1")
+    if a.model not in load_prices():
+        raise _AssumptionError(
+            f"unknown model {a.model!r}; see monitoring/prices.yaml for supported models"
+        )
 
 
 _TEMPLATE = """<!doctype html>
@@ -182,14 +221,20 @@ def create_app() -> Flask:
     """App factory. ``flask --app monitoring.finops:create_app run`` works too."""
     app = Flask(__name__)
 
+    def _load_assumptions() -> WorkloadAssumptions:
+        try:
+            return _assumptions_from_request()
+        except _AssumptionError as exc:
+            abort(400, description=str(exc))
+
     @app.route("/")
     def index() -> str:
-        p = compute_projection(_assumptions_from_request())
+        p = compute_projection(_load_assumptions())
         return render_template_string(_TEMPLATE, p=p)
 
     @app.route("/api/projection")
     def api_projection() -> Any:
-        p = compute_projection(_assumptions_from_request())
+        p = compute_projection(_load_assumptions())
         return jsonify(
             {
                 "assumptions": asdict(p.assumptions),
