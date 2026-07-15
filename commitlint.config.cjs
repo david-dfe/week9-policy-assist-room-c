@@ -7,7 +7,10 @@ module.exports = {
       'always',
       ['feat', 'fix', 'chore', 'docs', 'refactor', 'test', 'ci', 'build', 'perf', 'revert'],
     ],
-    'subject-case': [2, 'always', 'lower-case'],
+    // Inherits subject-case from config-conventional: rejects
+    // sentence-case, start-case, pascal-case, and upper-case
+    // (so acronyms like "PR" or "CVE" embedded in an otherwise
+    // lower-case subject are allowed).
     'subject-full-stop': [2, 'never', '.'],
     'header-max-length': [2, 'always', 100],
     'body-max-line-length': [1, 'always', 100],
