@@ -34,6 +34,7 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra dev
       - name: ruff check
@@ -55,6 +56,7 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra dev
       - name: mypy
@@ -78,6 +80,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra dev
       - name: pytest
@@ -104,6 +107,7 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Install deps
         run: uv sync --extra dev
       - name: bandit

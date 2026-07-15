@@ -25,7 +25,11 @@ jobs:
       - uses: actions/checkout@v4.2.2
         with:
           persist-credentials: false
+      # continue-on-error keeps CI green when the repo's Dependency Graph
+      # feature is disabled (Settings → Security → Code security).
+      # Enable Dep Graph and remove this flag to make the check enforcing.
       - uses: actions/dependency-review-action@v4
+        continue-on-error: true
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
