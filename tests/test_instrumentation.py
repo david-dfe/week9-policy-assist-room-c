@@ -106,3 +106,43 @@ class TestTracedLLMCall:
             pass
         span = span_capture.get_finished_spans()[0]
         assert span.kind == SpanKind.CLIENT
+
+    def test_prompt_and_completion_text_do_not_leak_to_span(
+        self, span_capture: InMemorySpanExporter
+    ) -> None:
+        """CLAUDE.md §9 rule 1: no raw prompt or completion text on spans.
+
+        Fake a response with a marker string sprinkled into fields a well-meaning
+        refactor might grab from (`.content`, extra `usage_metadata` keys). Assert
+        the marker appears in no span attribute and no status description.
+        """
+        marker = "MARKER-SHOULD-NEVER-APPEAR-ON-SPAN-4b8e2f"
+
+        class FakeResponse:
+            # Completion text a naive refactor might set as `answer` on the span.
+            content = f"The answer is {marker}."
+            # A misguided caller might stash extra fields here; usage_from_response
+            # must whitelist and ignore them.
+            usage_metadata = {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 0,
+                "prompt": f"officer asked: {marker}",
+            }
+
+        with traced_llm_call("claude-haiku-4-5", session_id="s1") as span:
+            span.record_usage(FakeResponse())
+
+        spans = span_capture.get_finished_spans()
+        assert len(spans) == 1
+        s = spans[0]
+        assert s.attributes is not None
+
+        for key, value in s.attributes.items():
+            assert marker not in str(value), f"marker leaked into span attribute {key}={value!r}"
+
+        if s.status.description:
+            assert marker not in s.status.description, (
+                f"marker leaked into status.description: {s.status.description!r}"
+            )
