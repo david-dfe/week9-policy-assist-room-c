@@ -125,3 +125,8 @@ class TestValidation:
         # Same validation must apply to the HTML page, not just the JSON endpoint.
         resp = client.get("/?model=made-up-model")
         assert resp.status_code == 400
+
+    def test_autoescape_enabled(self) -> None:
+        """Guard against Flask's version-dependent default for string templates."""
+        app = create_app()
+        assert app.jinja_env.autoescape is True

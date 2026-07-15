@@ -220,6 +220,10 @@ _TEMPLATE = """<!doctype html>
 def create_app() -> Flask:
     """App factory. ``flask --app monitoring.finops:create_app run`` works too."""
     app = Flask(__name__)
+    # The `_TEMPLATE` string interpolates the user-controlled `model` field.
+    # Force autoescape on rather than relying on Flask's version-dependent
+    # default for string templates.
+    app.jinja_env.autoescape = True
 
     def _load_assumptions() -> WorkloadAssumptions:
         try:
