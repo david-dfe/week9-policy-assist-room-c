@@ -10,6 +10,40 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-15 14:22 — Monitoring service implementation complete
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `feat/monitoring-service` — PR pending push
+**Type:** progress
+
+Full monitoring service landed on `feat/monitoring-service`. Seven commits stacked on top of `chore/repo-hardening`. All local checks pass (ruff, mypy, pytest — 36 tests, 92% coverage).
+
+**What shipped:**
+- `monitoring/cost.py` — `Usage`, `ModelPrices`, `compute_cost()`, `load_prices()`, and `usage_from_response()` handling three LangChain / native-Anthropic response shapes.
+- `monitoring/prices.yaml` — pinned GBP-per-million-token rates for `claude-sonnet-4-5` and `claude-haiku-4-5`, with the USD 1.00 = GBP 0.80 assumption documented in the header.
+- `monitoring/instrumentation.py` — `instrument_app()` (idempotent OTLP setup from env vars) and `traced_llm_call()` context manager setting GenAI semantic-convention attributes; errors recorded with `error.class`; `LLMSpan.record_usage()` sets four token attrs + `cost.gbp`.
+- `monitoring/finops.py` — standalone Flask app for the "£14,200 → what?" projection. `WorkloadAssumptions` dataclass exposes every input; HTML page shows naive vs projected bills side-by-side with a savings callout and a full calculation table; `/api/projection` returns JSON; every assumption overridable via query params.
+- `monitoring/README.md` — 3-line onboarding for a new client app; backend-agnostic story.
+- `signoz/README.md` + `signoz/dashboards/README.md` — how to run SigNoz upstream out-of-tree, smoke-test with a curl OTLP payload, and the four dashboards to build (cost / usage / reliability / per-app).
+- `policyassist/` — prototype copied in as reference client. Only three deviations from the prototype: `instrument_app()` at import, `traced_llm_call()` around `llm.invoke()`, and `MODEL` / `MAX_TOKENS` lifted to module constants (with `MODEL` corrected from the prototype's non-existent `claude-sonnet-5`).
+
+**Design decisions worth remembering:**
+- **`prices.yaml` is the ONLY place price values live.** Enforced by convention; guardrail test in `test_cost.py` (`test_cache_read_cheaper_than_input`) protects against paste errors.
+- **No prompt / completion text on spans.** Only metadata. See CLAUDE.md §9.1.
+- **`monitoring/` has no SigNoz-specific code.** Swap backend via env vars only.
+- **Dashboards deliberately not checked in as JSON up-front.** The SigNoz schema evolves and the query builder is much easier than hand-written JSON. Placeholder README + workflow doc; JSON lands as each team member builds one.
+- **`finops.py` is analytical, not observational.** It computes from `prices.yaml` + assumptions, not from SigNoz query data. A followup PR can wire in the real per-request avg cost once SigNoz is up and holding data. The value stands on its own — it answers the specific question the Head of Digital asked.
+
+**PR base is `chore/repo-hardening`** (stacked PR). When PR #1 merges, GitHub auto-updates PR #2 base to `main` and this becomes an independent PR against main.
+
+**Handover after PR #2 merges:**
+- Stand up SigNoz locally (`signoz/README.md`).
+- Point PolicyAssist at it via `.env`.
+- Build the four dashboards in the UI; export JSON; commit to `signoz/dashboards/`.
+- Optionally wire `/finops` to read observed cost from SigNoz query API for a live projection.
+
+---
+
 ## 2026-07-15 14:15 — CI hardened with security best practices
 
 **Author:** claude (on behalf of david-dfe)
