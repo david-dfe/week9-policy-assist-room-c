@@ -10,6 +10,24 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-15 15:10 — Review follow-ups: SpanKind, price caching, finops validation
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `feat/monitoring-service` — PR pending push
+**Type:** progress
+
+Implemented the three top-priority fixes from `monitoring-review.md` (which is a working-tree-only review artefact — not committed):
+
+1. **`SpanKind.CLIENT` on `llm.invoke` spans** (`monitoring/instrumentation.py`). LLM calls are outbound network calls; without this SigNoz service maps render them as internal, hiding the Anthropic hop. Added `test_span_kind_is_client`.
+2. **`load_prices` cached** via `functools.lru_cache` keyed on the resolved `Path` (`monitoring/cost.py`). Previously `compute_cost` re-parsed `prices.yaml` on every LLM call. Also switched the file open to explicit `encoding="utf-8"`.
+3. **`finops.py` query-param validation + explicit template autoescape.** Bad ints/floats, negative counts, out-of-range `cache_hit_ratio`, and unknown models now return HTTP 400 via `flask.abort(400)` instead of 500. `app.jinja_env.autoescape = True` locks autoescape on for `render_template_string`, which Flask's default handling for filename-less templates is version-dependent about. New `TestValidation` class in `tests/test_finops.py`.
+
+Also added the guardrail test `test_prompt_and_completion_text_do_not_leak_to_span` (CLAUDE.md §9 rule 1). It seeds a marker string in `.content` and an extra `usage_metadata` key, runs `record_usage`, and asserts the marker appears in no span attribute nor status description. Catches a future well-meaning refactor that sets `span.set_attribute("answer", response.content)`.
+
+Local checks all clean: 46 tests pass (was 36), 93% coverage, ruff + mypy clean. The remaining `monitoring-review.md` items (`str(exc)` leak, missing GenAI semconv attributes, shutdown flush, cost-as-metric, bandit/mypy scope, unpinned SigNoz clone) are deferred — flagged in the review file for a follow-up branch.
+
+---
+
 ## 2026-07-15 14:22 — Monitoring service implementation complete
 
 **Author:** claude (on behalf of david-dfe)
