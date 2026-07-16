@@ -12,6 +12,7 @@ Every LLM call in an instrumented app emits an OTLP span carrying tokens, model,
 |---|---|
 | `monitoring/` | Instrumentation client package — drop into any Python app |
 | `policyassist/` | Reference client (Flask app) already wired up |
+| `policyassist/README.md` | PolicyAssist-specific docs and manual-update workflow |
 | `signoz/` | Instructions for standing up the SigNoz backend |
 | `plan.md` | Implementation plan and rationale |
 | `CLAUDE.md` | Engineering conventions — branching, commits, CI |
