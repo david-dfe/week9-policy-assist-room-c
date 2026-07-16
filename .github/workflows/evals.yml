@@ -1,0 +1,52 @@
+name: evals
+
+# Manual-only: this workflow talks to the real Anthropic API and costs
+# money each run (~£0.05). It MUST NOT run on push/PR. Trigger from the
+# Actions UI or `gh workflow run evals`.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    name: golden-set evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39  # v3.2.4
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Install deps
+        run: uv sync --extra dev
+
+      - name: Run golden-set evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # SECRET_KEY is required to import policyassist.app; use any
+          # non-empty value for eval runs (no sessions are created here).
+          SECRET_KEY: ci-evals-not-a-real-secret
+        run: |
+          uv run python tests/evals/run_evals.py --json | tee evals-result.json
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: evals-result
+          path: evals-result.json
+          retention-days: 30
