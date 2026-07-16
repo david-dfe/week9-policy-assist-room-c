@@ -1,38 +1,46 @@
-"""PolicyAssist — internal guidance chat tool.
+"""PolicyAssist -- internal guidance chat tool.
 
-Reference client for the monitoring service. Carried over from the
-prototype with three minimum-viable changes to wire in observability:
+Reference client for the monitoring service. Wave 1 hardening:
 
-1. ``instrument_app("policyassist")`` at module load.
-2. ``llm.invoke()`` wrapped in ``traced_llm_call(...)``.
-3. ``MODEL`` and ``MAX_TOKENS`` extracted as module constants so the
-   monitoring wrapper and the LLM constructor share one source of truth.
+* Flask signed-cookie session gives each browser a stable sid.
+* HistoryStore isolates per-session conversation, trimmed to
+  HISTORY_MAX_TURNS turns before every LLM call.
+* Monitoring instrumentation preserved from the prototype+monitoring
+  bridge -- no changes to the traced_llm_call surface.
 
-All other prototype behaviour (global shared history, no session
-isolation, no caching, no retries, HTTP 500 on API failure) is
-preserved intentionally — those live in a separate PolicyAssist
-app workstream and are not this workstream's job.
+Remaining SINs (retries, caching, validation, red-banner errors) land in
+later slices; this file will grow -- keep the top-of-file section list
+in sync so a reader can find each concern in ~10 seconds.
 """
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from monitoring import instrument_app, traced_llm_call
+from policyassist.history import HistoryStore
 
 MODEL = "claude-sonnet-4-5"
 MAX_TOKENS = 1024
-LOG_FILE = Path(__file__).parent / "chat_log.json"
+
+_HISTORY_ROOT = Path(
+    os.environ.get(
+        "POLICYASSIST_HISTORY_ROOT",
+        str(Path(__file__).parent / "chat_log"),
+    )
+)
 MANUAL_PATH = Path(__file__).parent / "manual.txt"
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
+
 instrument_app(service_name="policyassist")
 
 llm = ChatAnthropic(
@@ -40,6 +48,8 @@ llm = ChatAnthropic(
     max_tokens=MAX_TOKENS,
     api_key=os.environ["ANTHROPIC_API_KEY"],
 )
+
+history_store = HistoryStore(_HISTORY_ROOT)
 
 MANUAL = MANUAL_PATH.read_text()
 
@@ -52,33 +62,29 @@ SYSTEM_PROMPT = (
 )
 
 
-def load_history() -> list[dict[str, str]]:
-    if LOG_FILE.exists():
-        with LOG_FILE.open() as f:
-            data: list[dict[str, str]] = json.load(f)
-            return data
-    return []
-
-
-def save_history(history: list[dict[str, str]]) -> None:
-    with LOG_FILE.open("w") as f:
-        json.dump(history, f, indent=2)
+def _ensure_sid() -> str:
+    sid = session.get("sid")
+    if not sid:
+        sid = uuid4().hex
+        session["sid"] = sid
+    return sid
 
 
 @app.route("/")
 def index() -> str:
-    return render_template("index.html", history=load_history())
+    sid = _ensure_sid()
+    return render_template("index.html", history=history_store.raw(sid))
 
 
 @app.route("/ask", methods=["POST"])
 def ask() -> dict[str, Any]:
+    sid = _ensure_sid()
     question: str = request.json["question"]  # type: ignore[index]
 
-    history = load_history()
     messages: list[SystemMessage | HumanMessage | AIMessage] = [
         SystemMessage(content=SYSTEM_PROMPT)
     ]
-    for entry in history:
+    for entry in history_store.get_context(sid):
         messages.append(HumanMessage(content=entry["question"]))
         messages.append(AIMessage(content=entry["answer"]))
     messages.append(HumanMessage(content=question))
@@ -88,8 +94,7 @@ def ask() -> dict[str, Any]:
         span.record_usage(response)
 
     answer = response.content
-    history.append({"question": question, "answer": answer})
-    save_history(history)
+    history_store.append(sid, question, answer)
 
     return {"answer": answer}
 
