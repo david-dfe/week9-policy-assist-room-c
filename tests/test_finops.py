@@ -7,7 +7,13 @@ from collections.abc import Iterator
 import pytest
 from flask.testing import FlaskClient
 
-from monitoring.finops import WorkloadAssumptions, compute_projection, create_app
+from monitoring.finops import (
+    BRIEF_NAIVE_TARGET_GBP,
+    WorkloadAssumptions,
+    compute_comparison,
+    compute_projection,
+    create_app,
+)
 
 
 class TestComputeProjection:
@@ -90,6 +96,48 @@ class TestRoutes:
         # Haiku should be cheaper than the default Sonnet.
         default = client.get("/api/projection").get_json()
         assert data["monthly_naive_gbp"] < default["monthly_naive_gbp"]
+
+    def test_defaults_land_near_brief_target(self) -> None:
+        # Defaults must reproduce Finance's ~£14,200/mo naive projection on
+        # Sonnet 4.5 — if they don't, the demo loses its punchline. Ten
+        # percent slack absorbs FX drift or minor price updates.
+        p = compute_projection(WorkloadAssumptions())
+        assert p.monthly_naive_gbp == pytest.approx(BRIEF_NAIVE_TARGET_GBP, rel=0.1)
+
+
+class TestComparison:
+    def test_compute_comparison_returns_projection_per_model(self) -> None:
+        projections = compute_comparison(
+            WorkloadAssumptions(), models=("claude-sonnet-4-5", "claude-haiku-4-5")
+        )
+        assert [p.assumptions.model for p in projections] == [
+            "claude-sonnet-4-5",
+            "claude-haiku-4-5",
+        ]
+
+    def test_haiku_cached_is_cheapest(self) -> None:
+        # Sanity: with the brief's defaults, Haiku + cache should beat every
+        # other combination. If this ever fails, prices moved dramatically
+        # and the page's "BEST" tag is misleading — worth a look.
+        projections = compute_comparison(WorkloadAssumptions())
+        cheapest = min(projections, key=lambda p: p.monthly_cached_gbp)
+        assert cheapest.assumptions.model == "claude-haiku-4-5"
+
+    def test_api_comparison_endpoint(self, client: FlaskClient) -> None:
+        resp = client.get("/api/comparison")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["brief_naive_target_gbp"] == BRIEF_NAIVE_TARGET_GBP
+        assert "claude-sonnet-4-5" in data["models"]
+        assert "claude-haiku-4-5" in data["models"]
+        assert len(data["projections"]) == len(data["models"])
+        assert data["best_model"] == "claude-haiku-4-5"
+
+    def test_index_shows_brief_target(self, client: FlaskClient) -> None:
+        resp = client.get("/")
+        assert resp.status_code == 200
+        # The brief target must be visible on the page — that's the demo hook.
+        assert b"14200" in resp.data or b"14,200" in resp.data
 
 
 class TestValidation:
