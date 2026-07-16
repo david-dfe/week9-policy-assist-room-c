@@ -10,6 +10,20 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-16 — Pin CI actions to commit SHAs; upgrade gitleaks-action to v3
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `ci/pin-action-shas` — PR pending
+**Type:** progress
+
+Resolved the `TODO(security)` left in `ci.yml` from the repo-hardening pass: all five third-party actions are now referenced by exact commit SHA rather than mutable version tags, with the tag kept as an inline comment for readability. SHA pinning closes the tag-hijacking vector documented in the GitHub Actions security hardening guide.
+
+Two commits on the branch:
+1. **Pin all actions to SHAs** — `actions/checkout` (v4.2.2), `astral-sh/setup-uv` (v3.2.4), `actions/upload-artifact` (v4.4.3), `gitleaks/gitleaks-action` (v2.3.9 at time of pinning), `wagoid/commitlint-github-action` (v6.2.1). The `wagoid` tag is annotated so the SHA was dereferenced one level to the underlying commit.
+2. **Upgrade gitleaks-action v2 → v3** — v2 runs on Node 20 which GitHub removes from hosted runners 2026-09-16; v3 migrates to Node 24 with no behavioural changes.
+
+---
+
 ## 2026-07-15 14:15 — CI hardened with security best practices
 
 **Author:** claude (on behalf of david-dfe)
