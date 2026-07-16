@@ -27,6 +27,7 @@ can find each concern in ~10 seconds.
 
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 from typing import Any
@@ -226,6 +227,13 @@ def ask() -> tuple[Response, int] | dict[str, Any]:
         messages.append(AIMessage(content=entry["answer"]))
     messages.append(HumanMessage(content=question))
 
+    # Prompt-injection anomaly signals: only metadata about the question
+    # goes onto the span. Raw content never appears on span attributes
+    # (CLAUDE.md §9.1). Hash is truncated to 8 hex chars — enough entropy
+    # to correlate repeats without enabling reversal.
+    question_length = len(question)
+    question_hash = hashlib.sha256(question.encode("utf-8")).hexdigest()[:8]
+
     # -------------------------------------------------------------------
     # Slice E + F: retry transient failures inside the outer span, then
     # map remaining anthropic transport errors to user-facing HTTP codes.
@@ -233,9 +241,17 @@ def ask() -> tuple[Response, int] | dict[str, Any]:
     # -------------------------------------------------------------------
     try:
         with traced_llm_call(model=MODEL) as span:
+            span.set_attribute("policyassist.question.length", question_length)
+            span.set_attribute("policyassist.question.hash", question_hash)
             response = _invoke_with_retry(messages)
             _hoist_cache_metrics(response)
             span.record_usage(response)
+            answer = (
+                response.content
+                if isinstance(response.content, str)
+                else str(response.content)
+            )
+            span.set_attribute("policyassist.answer.length", len(answer))
     except anthropic.APITimeoutError:
         return (
             jsonify({"error": "The service is slow to respond. Please try again."}),
@@ -251,11 +267,11 @@ def ask() -> tuple[Response, int] | dict[str, Any]:
             502,
         )
 
-    answer = response.content
     history_store.append(sid, question, answer)
 
     return {"answer": answer}
 
 
 if __name__ == "__main__":
+    # Dev-only local runner. Prod uses gunicorn — see Makefile.
     app.run(port=5000)
