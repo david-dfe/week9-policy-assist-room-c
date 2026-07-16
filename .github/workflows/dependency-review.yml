@@ -28,7 +28,7 @@ jobs:
       # continue-on-error keeps CI green when the repo's Dependency Graph
       # feature is disabled (Settings → Security → Code security).
       # Enable Dep Graph and remove this flag to make the check enforcing.
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
         continue-on-error: true
         with:
           fail-on-severity: high
