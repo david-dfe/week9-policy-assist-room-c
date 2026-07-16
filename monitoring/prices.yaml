@@ -1,0 +1,27 @@
+# Pinned per-million-token prices in GBP.
+#
+# Source: Anthropic public pricing (USD) converted at an assumed rate of
+# USD 1.00 = GBP 0.80. This FX assumption is stated in the FinOps page
+# and Day 2 presentation — do not silently change it here; if the rate
+# needs updating, update it explicitly and note the source and date.
+#
+# See CLAUDE.md §9 rule 3: this file is the ONLY place price values live.
+# Do not hardcode numbers in code, tests, dashboards, or the FinOps page.
+#
+# Fields per model:
+#   input_per_million_gbp        — regular input tokens (non-cached)
+#   output_per_million_gbp       — completion tokens
+#   cache_write_per_million_gbp  — tokens written to the prompt cache
+#   cache_read_per_million_gbp   — tokens read from the prompt cache (discounted)
+
+claude-sonnet-4-5:
+  input_per_million_gbp: 2.40
+  output_per_million_gbp: 12.00
+  cache_write_per_million_gbp: 3.00
+  cache_read_per_million_gbp: 0.24
+
+claude-haiku-4-5:
+  input_per_million_gbp: 0.80
+  output_per_million_gbp: 4.00
+  cache_write_per_million_gbp: 1.00
+  cache_read_per_million_gbp: 0.08

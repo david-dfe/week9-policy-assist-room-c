@@ -1,0 +1,104 @@
+BORDER FORCE OPERATIONAL MANUAL — EXTRACT FOR POLICYASSIST
+Version 4.2 — FICTIONAL TRAINING DOCUMENT. Not for operational use.
+
+SECTION 1 — ENTRY REQUIREMENTS: GENERAL PRINCIPLES
+
+1.1 All passengers arriving at the UK border must present a valid travel
+document. Acceptable documents are listed in Annex C of this manual.
+Officers must verify the document belongs to the holder, is genuine,
+and has not expired.
+
+1.2 Where a passenger presents an expired document, the officer must
+refer the case to the Duty Higher Officer (DHO). Officers must not
+grant entry on an expired document under any circumstances.
+
+1.3 Passengers travelling on the UK Electronic Travel Authorisation
+(ETA) scheme must hold a valid ETA linked to the travel document
+presented. If the ETA cannot be verified electronically, the officer
+should attempt manual verification via the Border Crossing system
+before refusing boarding or entry.
+
+1.4 Children under 18 travelling unaccompanied must be referred to a
+Safeguarding Lead for a welfare conversation before entry is granted.
+This applies regardless of nationality or document type.
+
+SECTION 2 — QUEUES AND PASSENGER FLOW
+
+2.1 The Port Duty Manager is responsible for queue management. When
+average queue time at the primary control point exceeds 45 minutes,
+the Port Duty Manager must open all available desks and may authorise
+the use of ePassport gates for eligible cohorts.
+
+2.2 Officers must not close a staffed desk during a declared surge
+period without authorisation from the Port Duty Manager.
+
+2.3 Passengers requiring assistance (mobility, medical, or travelling
+with infants) should be directed to the priority lane where one is
+available. Where no priority lane exists, officers should process
+these passengers at the nearest open desk.
+
+SECTION 3 — REFERRALS AND ESCALATION
+
+3.1 The following cases must always be referred to the DHO:
+(a) suspected document fraud;
+(b) expired or damaged travel documents;
+(c) passengers flagged by the watchlist system;
+(d) any case where the officer is not satisfied as to identity;
+(e) unaccompanied minors (see 1.4, refer to Safeguarding Lead first).
+
+3.2 Referrals must be logged in the Case Referral System (CRS) within
+one hour of the referral being made. The log must include the
+passenger reference, the reason code, and the referring officer's ID.
+
+3.3 If the DHO is unavailable for more than 20 minutes, the officer
+must contact the Regional Operations Centre for a remote decision.
+Passengers must not be left unsupervised in a holding area while a
+decision is pending.
+
+SECTION 4 — SHORT-TERM HOLDING
+
+4.1 A passenger may be directed to a short-term holding room only when
+a referral decision is pending and the passenger cannot remain at the
+control point. The maximum continuous period in a short-term holding
+room is 24 hours.
+
+4.2 Passengers in a holding room must be offered water and refreshments
+at intervals of no more than 2 hours, and must have access to a
+telephone to notify a family member or legal representative.
+
+4.3 A welfare check must be recorded every 30 minutes. The record must
+state the time, the officer's ID, and any concerns observed. Welfare
+checks for minors must be conducted by an officer with current
+safeguarding training.
+
+4.4 Any passenger held for more than 4 hours must be reviewed by the
+DHO, and again every 4 hours thereafter. Each review must be recorded
+in the CRS.
+
+SECTION 5 — GOODS AND DECLARATIONS
+
+5.1 Passengers carrying goods above their personal allowance must
+declare them at the red channel or via the online declaration service.
+Officers at the green channel may stop and question any passenger.
+
+5.2 Cash of £10,000 or more (or equivalent) entering or leaving Great
+Britain must be declared. Failure to declare may result in seizure of
+the cash and a penalty of up to £5,000.
+
+5.3 Prohibited items include controlled drugs, offensive weapons, and
+products of animal origin from non-approved countries. Suspected
+prohibited items must be detained and logged, and the passenger
+referred to a specialist officer.
+
+SECTION 6 — SYSTEM OUTAGES
+
+6.1 During a Border Crossing system outage, officers must revert to
+manual processing under Contingency Procedure BC-7. Manual entries
+must be reconciled with the system within 48 hours of restoration.
+
+6.2 During an outage, ePassport gates must be closed and all
+passengers processed at staffed desks. The Port Duty Manager must
+notify the Regional Operations Centre within 15 minutes of the outage
+beginning.
+
+END OF EXTRACT
