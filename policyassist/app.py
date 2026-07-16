@@ -51,6 +51,43 @@ SYSTEM_PROMPT = (
     "=== BORDER FORCE OPERATIONAL MANUAL (EXTRACT) ===\n\n" + MANUAL
 )
 
+# Mark the operational-manual portion of the system prompt for Anthropic
+# ephemeral prompt caching. langchain-anthropic propagates the
+# ``cache_control`` marker when the SystemMessage content is passed as a
+# list of typed blocks (confirmed by the 2026-07-16 C1 spike).
+SYSTEM_PROMPT_BLOCK: dict[str, Any] = {
+    "type": "text",
+    "text": SYSTEM_PROMPT,
+    "cache_control": {"type": "ephemeral"},
+}
+
+
+def _hoist_cache_metrics(response: Any) -> None:
+    """Copy nested langchain-anthropic cache metrics to the top level.
+
+    langchain-anthropic surfaces cache reads under
+    ``usage_metadata["input_token_details"]["cache_read"]``, but
+    ``monitoring/cost.py:usage_from_response`` looks for
+    ``cache_read_input_tokens`` at the top level. Copy across, but do
+    NOT overwrite a top-level value already set by the native SDK shape.
+    """
+    meta = getattr(response, "usage_metadata", None)
+    if not isinstance(meta, dict):
+        return
+    details = meta.get("input_token_details")
+    if not isinstance(details, dict):
+        return
+    for src, dst in (
+        ("cache_read", "cache_read_input_tokens"),
+        ("cache_creation", "cache_creation_input_tokens"),
+    ):
+        if dst in meta:
+            continue
+        val = details.get(src)
+        if val is None:
+            continue
+        meta[dst] = int(val)
+
 
 def load_history() -> list[dict[str, str]]:
     if LOG_FILE.exists():
@@ -76,7 +113,7 @@ def ask() -> dict[str, Any]:
 
     history = load_history()
     messages: list[SystemMessage | HumanMessage | AIMessage] = [
-        SystemMessage(content=SYSTEM_PROMPT)
+        SystemMessage(content=[SYSTEM_PROMPT_BLOCK])
     ]
     for entry in history:
         messages.append(HumanMessage(content=entry["question"]))
@@ -85,6 +122,7 @@ def ask() -> dict[str, Any]:
 
     with traced_llm_call(model=MODEL) as span:
         response = llm.invoke(messages)
+        _hoist_cache_metrics(response)
         span.record_usage(response)
 
     answer = response.content
