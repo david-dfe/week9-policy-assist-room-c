@@ -10,6 +10,72 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-16 — Wave 3: evals + manual update workflow — plan-policyassist.md fully implemented
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `feat/policyassist-evals` — #21 — `174b1b1`, `d40fbd4`
+**Type:** progress + handover
+
+Wave 3 closes the 10-slice plan. Single subagent on `feat/policyassist-evals`; ~7 minutes end-to-end.
+
+**Slice I (evals, PR #21 commit `174b1b1`):**
+- `tests/evals/golden.yaml` — **18 fact/answer pairs**, all grounded in specific clauses of `policyassist/manual.txt`. Multi-pattern `expect_any` (substring or `re:`-prefixed regex) per entry so paraphrases score.
+- `tests/evals/run_evals.py` — CLI runner. Same `SYSTEM_PROMPT_BLOCK` shape as production. Prints pass/fail table + overall percentage. `--json` mode for CI. Exit non-zero if below `EVAL_PASS_THRESHOLD` (0.85).
+- `tests/evals/test_runner.py` — 10 offline tests covering scoring/loading/injection surface. No live API calls.
+- `.github/workflows/evals.yml` — `workflow_dispatch` trigger only, per plan-policyassist.md:235. Registers on `main` after this merge; run via `gh workflow run evals` or the Actions UI.
+
+**Live eval baseline: 18/18 (100.0%)** against Sonnet 4.5 through the production system prompt. This is a snapshot not a permanent claim — pass rate will drift as the manual, model, or prompt changes. That's exactly what Slice J's workflow guards against.
+
+**Slice J (manual update workflow, PR #21 commit `d40fbd4`):**
+- New `policyassist/README.md` — includes:
+  - "What PolicyAssist is" paragraph pointing back to the root README.
+  - Manual-update procedure: edit `manual.txt` on a feature branch → run `run_evals.py` locally → update `golden.yaml` for changed facts → re-run → PR → reviewer manually triggers the `evals` workflow → merge → ai-log note about first-request uncached pricing.
+  - Handover items list — SSO/2FA, encryption at rest, DPIA, ATRS registration, DPA review, procurement, prompt-injection full mitigation — all mirrored from plan-policyassist.md §5 so the next writer of ai-log.md doesn't treat them as bugs.
+- Root `README.md` — one pointer line added; rest untouched.
+
+**Subagent noticed one small deviation from the plan I wrote:** hedged bullet 12 about ePassport-during-outage was unnecessary — §6.2 clearly states gates must be closed, so the entry landed. Extra entries `outage-manual-reconciliation-window`, `cash-non-declaration-penalty`, `outage-notify-roc-window` were added because they're directly attested.
+
+## 2026-07-16 — Sprint close: 10 of 10 slices merged
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** N/A — sprint summary
+**Type:** handover
+
+`plan-policyassist.md` is fully implemented. All 10 slices (A–J) landed today in 4 waves across 8 PRs.
+
+**Waves and PRs:**
+| Wave | Slice(s) | PR(s) | What shipped |
+|---|---|---|---|
+| 0 | shared constants + design | #13, #14 | `policyassist/config.py`; workflow design spec; per-slice plans |
+| 1 | A, B, C | #15, #16, #17 | Session isolation via signed cookies + `HistoryStore`; rolling-window trim; `cache_control` on system prompt; monitoring cache-field adapter |
+| 2 | D, E, F, G, H | #18, #19, #20 | Input validation; red-banner errors; tenacity retries with 30s timeout; gunicorn + `Makefile`; injection anomaly signals on spans (length + hash only) |
+| 3 | I, J | #21 | 18-entry golden set (100% baseline); eval runner + `workflow_dispatch` CI; manual-update workflow docs + handover items |
+
+**Metrics:**
+- 104 tests, 98.20% coverage on `monitoring/`.
+- Every PR merged with rebase-and-merge; linear history preserved on `main`.
+- Zero Claude co-author trailers on commits or PR bodies.
+- Zero `--no-verify` on any commit that touched code.
+
+**Success criteria (from plan-policyassist.md §7):**
+- ✅ Two browsers, two independent sessions (verified via curl two-cookie test).
+- ✅ Prompt cache propagates through LangChain (C1 spike + Slice C landed; cache_read visible via `_hoist_cache_metrics` shim).
+- ✅ Deliberate API failure surfaces a red banner and does not hang (Slice E + F tests).
+- ✅ `run_evals.py` prints ≥ 85% pass rate — actual 100.0% baseline.
+- ✅ `gunicorn -w 4 -b 127.0.0.1:5000 policyassist.app:app` binds and serves (Slice G live-smoked).
+
+All five demo criteria met without a human-in-the-loop authoring step outside of golden-set review.
+
+**Two backlog items still open (both low-risk, both flagged since Wave 1):**
+1. `chore(ci): fix pre-commit mypy hook additional_dependencies` — pre-commit's isolated mypy env is missing flask/langchain/opentelemetry stubs; hook fails on any commit touching `app.py`. The SMB filesystem masks it locally (hook not executable), CI runs `mypy monitoring` only so the drift never gates. Should be a small chore PR.
+2. `fix(monitoring): read LangChain nested cache fields in usage_from_response` — removes the need for the `_hoist_cache_metrics` per-app adapter. Also small.
+
+Neither blocks the Day-2 demo.
+
+**Handover items (governance / out of scope this sprint)** — see `policyassist/README.md` §Handover items and `plan-policyassist.md` §5.
+
+---
+
 ## 2026-07-16 — Wave 2: validation, red-banner errors, retries, prod server, injection signals
 
 **Author:** claude (on behalf of david-dfe)
