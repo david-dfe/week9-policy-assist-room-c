@@ -1,0 +1,35 @@
+# PR-only dependency-vulnerability check. Complements pip-audit (which
+# scans the currently-installed set) by scanning what a PR is about to
+# introduce, before merge.
+#
+# Requires either a public repository OR a GitHub Advanced Security
+# licence. If the repo goes private without GHAS, delete this workflow.
+
+name: dependency-review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      # continue-on-error keeps CI green when the repo's Dependency Graph
+      # feature is disabled (Settings → Security → Code security).
+      # Enable Dep Graph and remove this flag to make the check enforcing.
+      - uses: actions/dependency-review-action@v4
+        continue-on-error: true
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

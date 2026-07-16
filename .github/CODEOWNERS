@@ -1,0 +1,14 @@
+# Code ownership. Every PR requires review from an owner of the affected paths.
+# Update this file as team membership changes.
+
+# Default owner for everything not otherwise matched.
+*                       @david-dfe
+
+# Engineering conventions and CI — high-impact, review carefully.
+/CLAUDE.md              @david-dfe
+/.github/               @david-dfe
+/pyproject.toml         @david-dfe
+/.pre-commit-config.yaml @david-dfe
+
+# Cost model — a wrong price value has real-money consequences.
+/monitoring/prices.yaml @david-dfe

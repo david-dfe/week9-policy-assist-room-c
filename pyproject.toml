@@ -1,0 +1,91 @@
+[project]
+name = "policyassist-monitoring"
+version = "0.1.0"
+description = "OpenTelemetry-based LLM observability client for PolicyAssist and future Home Office apps."
+requires-python = ">=3.12"
+readme = "README.md"
+
+dependencies = [
+    "flask>=3.0,<4.0",
+    "langchain-anthropic>=1.4.6,<2.0",
+    "langchain-core>=1.2.22,<2.0",
+    "opentelemetry-api>=1.28,<2.0",
+    "opentelemetry-sdk>=1.28,<2.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.28,<2.0",
+    "opentelemetry-semantic-conventions>=0.49b0",
+    "pyyaml>=6.0,<7.0",
+    "requests>=2.32,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "bandit[toml]>=1.7",
+    "pip-audit>=2.7",
+    "pre-commit>=4.0",
+    "types-PyYAML",
+    "types-requests",
+]
+
+# --- Tooling config: single source of truth ---
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["signoz/dashboards"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]  # allow assert in tests
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = ["langchain_anthropic.*", "langchain_core.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-ra -q --strict-markers --strict-config --cov --cov-report=term-missing"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["monitoring"]
+branch = true
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv", "signoz"]
+skips = ["B101"]  # assert_used (fine in tests, excluded elsewhere)
