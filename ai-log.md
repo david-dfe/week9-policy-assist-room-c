@@ -10,6 +10,57 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-16 — Wave 2: validation, red-banner errors, retries, prod server, injection signals
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `feat/policyassist-reliability` — #19 — `2feb00f`; `feat/policyassist-prod-server` — #18 — `a02b103`
+**Type:** progress
+
+Wave 2 shipped two parallel PRs an hour after Wave 1. 8 of the 10 slices in `plan-policyassist.md` are now in main. Only Slices I (evals) and J (manual-update docs) remain for Wave 3.
+
+**Slice D (input validation, PR #19):**
+- Five hand-rolled guards at the top of `ask()` (non-JSON, missing/non-string/empty/oversized `question`). All return `400 {"error": "..."}`.
+- Validation runs BEFORE `_ensure_sid()` — malformed requests do not churn session cookies. Covered by `test_validation_does_not_create_session`.
+
+**Slice E (error surfacing, PR #19):**
+- `try/except` maps `anthropic.APITimeoutError → 504`, `APIConnectionError/APIStatusError/APIError → 502`. Body carries `{"error": ...}`.
+- `templates/index.html` renders a red banner on `!res.ok`, keeps the question in the input, and only commits the transcript entry on success.
+
+**Slice F (retries + timeouts, PR #19):**
+- `ChatAnthropic(..., timeout=LLM_TIMEOUT_SECONDS)`; retry loop inside `traced_llm_call` via `tenacity.Retrying(stop_after_attempt(LLM_MAX_RETRIES), wait=wait_exponential_jitter(1, 8))`.
+- Custom `_should_retry` narrows `APIStatusError` to 5xx and includes `RateLimitError` and `APIConnectionError`. **Deliberate divergence** from the plan's suggested `retry_if_exception_type` — `BadRequestError` subclasses `APIStatusError`, so the naive form would incorrectly retry 400s. Behaviour matches the plan's *stated intent* ("do not retry 400/401/403"); the shape differs.
+- `_RETRY_WAIT` exposed as a module-level attribute so tests can swap it for `wait_none()`.
+- Added `tenacity>=9,<10` to `pyproject.toml` dependencies.
+- 15 new tests (11 validation/error + 4 retry).
+
+**Slice G (production server, PR #18):**
+- `app.run(...)` is now dev-only (already gated on `__name__ == "__main__"`).
+- `pyproject.toml` dev extras get `gunicorn>=23,<24`.
+- New root `Makefile` with `make run` (gunicorn 4 workers on 127.0.0.1:5000), `make dev`, `make test`, `make lint`.
+- `README.md` documents both dev and production launch.
+- Live-smoke: `gunicorn -w 4` binds and returns 200 on `/`.
+
+**Slice H (injection anomaly signals, PR #18):**
+- After validation and before the LLM call, `ask()` computes `question_length = len(question)` and `question_hash = sha256(question)[:8]`, both attached to the OTel span via `span.set_attribute(...)`.
+- After the LLM call, `answer.length` is recorded — inside the same `with span:` block. **No raw content on any span attribute** (CLAUDE.md §9.1 hard constraint).
+- 6 new tests including an explicit `test_raw_question_text_not_recorded_on_span_attributes` invariant.
+
+**Rebase conflict handled:**
+- PR #18 rebased onto merged PR #19 hit one conflict at the SystemMessage/LLM-invoke block. Resolved by nesting Slice H's `span.set_attribute` calls inside Slice E's `try/except` and around Slice F's `_invoke_with_retry(messages)` — both changes now coexist. Manual `ruff format` fix on the amended commit unblocked CI.
+
+**Merged docs bundle (this PR):**
+- `docs/superpowers/plans/2026-07-16-wave-2a-reliability.md` — Wave 2A plan.
+- `docs/superpowers/plans/2026-07-16-wave-2b-prod-and-injection.md` — Wave 2B plan.
+- This ai-log entry.
+
+**Still outstanding (unchanged from Wave 1's note):**
+- `chore(ci): fix pre-commit mypy hook additional_dependencies` — adds flask/langchain/opentelemetry stubs so the hook actually runs on `policyassist/app.py`.
+- `fix(monitoring): read LangChain nested cache fields in usage_from_response` — removes the need for `_hoist_cache_metrics` adapter in every client app.
+
+Next: Wave 3 — Slice I (golden-set evals + runner + workflow_dispatch CI) and Slice J (manual-update procedure in `README.md`).
+
+---
+
 ## 2026-07-16 — Wave 1: session isolation, bounded history, prompt caching all landed
 
 **Author:** claude (on behalf of david-dfe)
