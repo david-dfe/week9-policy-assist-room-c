@@ -247,9 +247,7 @@ def ask() -> tuple[Response, int] | dict[str, Any]:
             _hoist_cache_metrics(response)
             span.record_usage(response)
             answer = (
-                response.content
-                if isinstance(response.content, str)
-                else str(response.content)
+                response.content if isinstance(response.content, str) else str(response.content)
             )
             span.set_attribute("policyassist.answer.length", len(answer))
     except anthropic.APITimeoutError:

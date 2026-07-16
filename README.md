@@ -103,11 +103,23 @@ OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<api-key>
 
 PolicyAssist is a Flask chat app for Border Force officers. It answers questions against an operational manual using Claude.
 
+### Dev server (auto-reload, single worker)
+
 ```bash
 uv run flask --app policyassist.app run --port 5000
 ```
 
 Open **http://localhost:5000** in your browser. Type a question and submit — the app calls Claude, persists the conversation to `policyassist/chat_log.json`, and returns an answer.
+
+### Production-grade server
+
+Never run the Flask dev server in production. Use gunicorn via the top-level `Makefile`:
+
+```bash
+make run
+```
+
+This starts gunicorn with **four worker processes** bound to `127.0.0.1:5000` and points at `policyassist.app:app`. Four workers is a safe default for a single-node deployment; tune with the `-w` flag if your host has more cores or you observe queueing. The app module never calls `app.run()` at import time, so `gunicorn` picks up a clean WSGI object.
 
 Every request automatically emits an OTLP span to SigNoz. Within a second of asking a question you should see a new trace under **Traces → Filter by `service.name = policyassist`**.
 
