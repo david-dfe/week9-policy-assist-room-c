@@ -10,25 +10,36 @@ We do **not** vendor the SigNoz docker-compose file into this repo — it change
 
 - Docker Engine 20+ and Docker Compose v2
 - ~4 GB free RAM on the host that will run SigNoz
-- Ports free: 3301 (frontend), 4317 (OTLP gRPC), 4318 (OTLP HTTP), 8123 (ClickHouse; optional external access)
+- Ports free: 8080 (frontend), 4317 (OTLP gRPC), 4318 (OTLP HTTP), 8123 (ClickHouse; optional external access)
 
 ---
 
 ## Bring it up
 
 ```bash
-# 1. Clone SigNoz upstream to a location OUTSIDE this repo, e.g. ~/signoz
-git clone -b main https://github.com/SigNoz/signoz.git ~/signoz
+# 1. Install foundryctl (SigNoz's deployment tool)
+curl -fsSL https://signoz.io/foundry.sh | bash
 
-# 2. Start with the standard docker-compose profile
-cd ~/signoz/deploy/docker
-docker compose up -d
+# 2. Create a deployment descriptor
+cat > casting.yaml <<'EOF'
+apiVersion: v1alpha1
+kind: Installation
+metadata:
+  name: signoz
+spec:
+  deployment:
+    flavor: compose
+    mode: docker
+EOF
 
-# 3. Wait ~60s for ClickHouse to initialise, then open the UI
-open http://localhost:3301
+# 3. Deploy the stack (generates docker-compose files and starts containers)
+foundryctl cast -f casting.yaml
+
+# 4. Open the UI
+open http://localhost:8080
 ```
 
-First-run: SigNoz will ask you to create an admin user. Any email/password works locally — remember the credentials, they persist in ClickHouse.
+First-run: SigNoz will ask you to create an admin user. Any email/password works locally — the credentials persist in the database.
 
 ---
 
