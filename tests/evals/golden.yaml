@@ -1,0 +1,175 @@
+# PolicyAssist golden-set evals.
+#
+# Each entry is a question paired with a list of acceptable answer
+# patterns (`expect_any`). A response passes the entry when it
+# case-insensitively matches ANY pattern via substring OR regex (regex
+# patterns are prefixed with `re:`).
+#
+# Every fact below is grounded in `policyassist/manual.txt`. If a manual
+# update makes a fact stale, update BOTH the manual and the entry — do
+# not fabricate. See `policyassist/README.md` for the update workflow.
+
+- id: welfare-checks-interval
+  question: How often must welfare checks be recorded in a short-term holding room?
+  expect_any:
+    - "30 minutes"
+    - "every 30"
+    - "re:every\\s+30\\s+min"
+  canonical: "Every 30 minutes."
+  section: "4.3"
+
+- id: max-continuous-short-term-holding
+  question: What is the maximum continuous period a passenger may be held in a short-term holding room?
+  expect_any:
+    - "24 hours"
+    - "re:24\\s*hours"
+    - "twenty-four hours"
+  canonical: "24 hours."
+  section: "4.1"
+
+- id: refreshments-interval
+  question: How often must passengers in a holding room be offered water and refreshments?
+  expect_any:
+    - "2 hours"
+    - "no more than 2"
+    - "every two hours"
+    - "re:2\\s*hours"
+  canonical: "At intervals of no more than 2 hours."
+  section: "4.2"
+
+- id: expired-document-referral
+  question: What must an officer do if a passenger presents an expired travel document?
+  expect_any:
+    - "Duty Higher Officer"
+    - "DHO"
+    - "refer"
+  canonical: "Refer the case to the Duty Higher Officer (DHO); never grant entry on an expired document."
+  section: "1.2"
+
+- id: epassport-gate-queue-threshold
+  question: At what average queue time must the Port Duty Manager open all available desks and consider ePassport gates?
+  expect_any:
+    - "45 minutes"
+    - "exceeds 45"
+    - "re:45\\s+min"
+  canonical: "When average queue time exceeds 45 minutes."
+  section: "2.1"
+
+- id: crs-log-deadline
+  question: Within what timeframe must a referral be logged in the Case Referral System?
+  expect_any:
+    - "one hour"
+    - "1 hour"
+    - "within an hour"
+    - "re:within\\s+(one|1)\\s+hour"
+  canonical: "Within one hour of the referral being made."
+  section: "3.2"
+
+- id: unaccompanied-minor-referral
+  question: What must happen when a child under 18 is travelling unaccompanied?
+  expect_any:
+    - "Safeguarding Lead"
+    - "safeguarding lead"
+    - "welfare conversation"
+  canonical: "Refer to a Safeguarding Lead for a welfare conversation before entry is granted."
+  section: "1.4"
+
+- id: cash-declaration-threshold
+  question: At what cash amount must a passenger declare when entering or leaving Great Britain?
+  expect_any:
+    - "£10,000"
+    - "10,000"
+    - "ten thousand"
+  canonical: "£10,000 or more (or equivalent)."
+  section: "5.2"
+
+- id: dho-unavailable-escalation
+  question: What must an officer do if the DHO is unavailable for more than 20 minutes?
+  expect_any:
+    - "Regional Operations Centre"
+    - "regional operations"
+    - "remote decision"
+  canonical: "Contact the Regional Operations Centre for a remote decision."
+  section: "3.3"
+
+- id: dho-review-cadence-prolonged-holding
+  question: How often must the DHO review a passenger held for a prolonged period?
+  expect_any:
+    - "4 hours"
+    - "every 4"
+    - "re:every\\s+4\\s+hours"
+    - "four hours"
+  canonical: "After 4 hours, then every 4 hours thereafter."
+  section: "4.4"
+
+- id: eta-manual-verification
+  question: What should an officer do if a passenger's Electronic Travel Authorisation cannot be verified electronically?
+  expect_any:
+    - "Border Crossing"
+    - "manual verification"
+    - "manually verif"
+  canonical: "Attempt manual verification via the Border Crossing system before refusing boarding or entry."
+  section: "1.3"
+
+- id: epassport-gates-during-outage
+  question: What happens to ePassport gates during a Border Crossing system outage?
+  expect_any:
+    - "closed"
+    - "must be closed"
+    - "staffed desks"
+  canonical: "ePassport gates must be closed; all passengers processed at staffed desks."
+  section: "6.2"
+
+- id: closing-staffed-desk-authority
+  question: Who must authorise closing a staffed desk during a declared surge period?
+  expect_any:
+    - "Port Duty Manager"
+    - "port duty manager"
+  canonical: "The Port Duty Manager must authorise it."
+  section: "2.2"
+
+- id: welfare-check-record-contents
+  question: What details must a welfare check record include?
+  expect_any:
+    - "officer's ID"
+    - "officer ID"
+    - "officer's id"
+    - "re:officer'?s\\s+id"
+  canonical: "The time, the officer's ID, and any concerns observed."
+  section: "4.3"
+
+- id: priority-lane-passengers
+  question: Which passengers should be directed to a priority lane where available?
+  expect_any:
+    - "mobility"
+    - "medical"
+    - "infants"
+  canonical: "Passengers requiring assistance — mobility, medical, or travelling with infants."
+  section: "2.3"
+
+- id: outage-manual-reconciliation-window
+  question: Within what time must manual entries during a system outage be reconciled with the Border Crossing system?
+  expect_any:
+    - "48 hours"
+    - "re:48\\s*hours"
+    - "forty-eight hours"
+  canonical: "Within 48 hours of restoration."
+  section: "6.1"
+
+- id: cash-non-declaration-penalty
+  question: What is the maximum penalty for failing to declare cash of £10,000 or more?
+  expect_any:
+    - "£5,000"
+    - "5,000"
+    - "seizure"
+  canonical: "Seizure of the cash and a penalty of up to £5,000."
+  section: "5.2"
+
+- id: outage-notify-roc-window
+  question: Within what time must the Port Duty Manager notify the Regional Operations Centre of a Border Crossing system outage?
+  expect_any:
+    - "15 minutes"
+    - "re:15\\s*min"
+    - "fifteen minutes"
+  canonical: "Within 15 minutes of the outage beginning."
+  section: "6.2"
