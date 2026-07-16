@@ -231,6 +231,9 @@ Thumbs.db
 policyassist/chat_log.json
 chat_log.json
 
+# Session-scoped history files written at runtime (Slice A).
+policyassist/chat_log/
+
 # SigNoz local data
 signoz/data/
 signoz/logs/
