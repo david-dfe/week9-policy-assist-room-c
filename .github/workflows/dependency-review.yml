@@ -22,7 +22,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v7.0.0
         with:
           persist-credentials: false
       # continue-on-error keeps CI green when the repo's Dependency Graph

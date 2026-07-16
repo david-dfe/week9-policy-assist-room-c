@@ -28,7 +28,7 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v7.0.0
         with:
           persist-credentials: false
       - name: Initialise CodeQL
