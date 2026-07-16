@@ -10,10 +10,28 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-16 — Rebase chore/repo-hardening onto main; merge as PR #9
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `chore/repo-hardening` — #9 — `95c8301`
+**Type:** progress
+
+Rebased `chore/repo-hardening` (18 commits) onto `main` and merged as PR #9. Five conflicts resolved:
+
+- `pyproject.toml`: kept `langchain-anthropic>=1.4.6` + `langchain-core>=1.2.22` from `main` (CVE fix that landed via PR #8).
+- `.github/workflows/ci.yml` (three separate conflict points across intermediate commits): kept `main`'s fully SHA-pinned, permissioned, matrix-testing version throughout.
+- `commitlint.config.cjs`: kept `main`'s relaxed `subject-case` (allows acronyms like PR/CVE).
+- `.github/workflows/dependency-review.yml`: kept `main`'s `continue-on-error: true` (Dependency Graph not yet enabled).
+- `ai-log.md` (three conflict points): merged all entries from both sides chronologically.
+
+All CI jobs green before merge. Merged via `gh pr merge 9 --rebase --delete-branch`.
+
+---
+
 ## 2026-07-16 — Pin CI actions to commit SHAs; upgrade gitleaks-action to v3
 
 **Author:** claude (on behalf of david-dfe)
-**Branch / PR:** `ci/pin-action-shas` — PR pending
+**Branch / PR:** `ci/pin-action-shas` — #8 — `46586c3`
 **Type:** progress
 
 Resolved the `TODO(security)` left in `ci.yml` from the repo-hardening pass: all five third-party actions are now referenced by exact commit SHA rather than mutable version tags, with the tag kept as an inline comment for readability. SHA pinning closes the tag-hijacking vector documented in the GitHub Actions security hardening guide.
@@ -28,7 +46,7 @@ Two commits on the branch:
 ## 2026-07-15 15:10 — Review follow-ups: SpanKind, price caching, finops validation
 
 **Author:** claude (on behalf of david-dfe)
-**Branch / PR:** `feat/monitoring-service` — PR pending push
+**Branch / PR:** `feat/monitoring-service` → merged into `chore/repo-hardening` → landed on `main` via PR #9 — `95c8301`
 **Type:** progress
 
 Implemented the three top-priority fixes from `monitoring-review.md` (which is a working-tree-only review artefact — not committed):
@@ -46,7 +64,7 @@ Local checks all clean: 46 tests pass (was 36), 93% coverage, ruff + mypy clean.
 ## 2026-07-15 14:22 — Monitoring service implementation complete
 
 **Author:** claude (on behalf of david-dfe)
-**Branch / PR:** `feat/monitoring-service` — PR pending push
+**Branch / PR:** `feat/monitoring-service` → merged into `chore/repo-hardening` → landed on `main` via PR #9 — `95c8301`
 **Type:** progress
 
 Full monitoring service landed on `feat/monitoring-service`. Seven commits stacked on top of `chore/repo-hardening`. All local checks pass (ruff, mypy, pytest — 36 tests, 92% coverage).
@@ -113,7 +131,7 @@ Applied a first pass of GitHub Actions security best practices to the CI workflo
 ## 2026-07-15 13:45 — Repo hardening branch pushed for review
 
 **Author:** claude (on behalf of david-dfe)
-**Branch / PR:** `chore/repo-hardening` — PR pending push
+**Branch / PR:** `chore/repo-hardening` — landed on `main` via PR #9 — `95c8301`
 **Type:** progress
 
 Added the tooling scaffolding promised by `CLAUDE.md` §6–§7:
