@@ -10,6 +10,30 @@ Rolling record of design decisions, progress, blockers, and handovers for the Po
 
 ---
 
+## 2026-07-16 — Wave 0: shared constants + workflow design landed; C1 spike PASS
+
+**Author:** claude (on behalf of david-dfe)
+**Branch / PR:** `chore/policyassist-shared-constants` — #13 — `5aa50e7`, `b011dc9`
+**Type:** progress + decision
+
+Kicked off the PolicyAssist hardening workstream (per `plan-policyassist.md`) as a deterministic workflow with `obra/superpowers` as the skill layer. Design spec at `docs/superpowers/specs/2026-07-16-policyassist-hardening-workflow-design.md`; Wave 0 implementation plan at `docs/superpowers/plans/2026-07-16-wave-0-shared-constants-and-spike.md`.
+
+**Wave 0 (this PR):**
+- `policyassist/config.py` centralises the five shared constants (`HISTORY_MAX_TURNS=10`, `MAX_QUESTION_LENGTH=500`, `LLM_TIMEOUT_SECONDS=30`, `LLM_MAX_RETRIES=3`, `EVAL_PASS_THRESHOLD=0.85`) with env-var overrides read at import time. Removes the collision surface between slices D and H before parallel work starts.
+- `tests/test_config.py` — 11 tests covering defaults + env overrides. Full suite still 93% coverage on `monitoring/`.
+
+**C1 spike (run 2026-07-16, out-of-tree at `/tmp/cache_control_spike.py`):** two identical `SystemMessage`s with `cache_control={"type":"ephemeral"}` through `langchain-anthropic` produced a `cache_read=1402` on the second call. **Cache propagates.** Locked contracts for Wave 1: **Slice C = D1 (LangChain path)**, **Slice F = F2 (Tenacity retries)**.
+
+**Note for Slice C implementer:** LangChain surfaces cache metrics under `usage_metadata["input_token_details"]["cache_read"]`, not at the top-level key `cache_read_input_tokens`. `monitoring/instrumentation.py:usage_from_response` should be checked for correct field lookup — if it reads the top-level key it will silently record zero cache reads on spans.
+
+**Note on tooling drift:** `CLAUDE.md` §6 states `mypy monitoring policyassist` but CI at `.github/workflows/ci.yml:58` only runs `mypy monitoring`. Running the wider scope locally surfaces 5 pre-existing errors in `policyassist/app.py` (LangChain typing gaps). Not fixed in this PR — should be a separate `fix:` PR or a `docs:` correction to `CLAUDE.md`.
+
+**Note on pre-commit hooks:** the repo is on an SMB mount that strips the exec bit off `.git/hooks/pre-commit`. `pre-commit install` succeeds but the hook doesn't fire automatically. Ran `pre-commit run --files ...` manually before each commit on this branch. Anyone working in this repo from the same filesystem will hit the same behaviour.
+
+Next: Wave 1 — write per-slice plans for A+B and C, set up two worktrees, dispatch parallel subagents. A+B merges first (session isolation is the foundation), then C rebases and merges.
+
+---
+
 ## 2026-07-16 — Rebase chore/repo-hardening onto main; merge as PR #9
 
 **Author:** claude (on behalf of david-dfe)
