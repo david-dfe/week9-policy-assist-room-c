@@ -67,13 +67,26 @@ The monitoring client reads all OTel config from environment variables — no co
 SigNoz receives the spans your app emits and provides dashboards, traces, and alerting.
 
 ```bash
-# Clone SigNoz outside this repo, then start it
-git clone -b main https://github.com/SigNoz/signoz.git ~/signoz
-cd ~/signoz/deploy/docker
-docker compose up -d
+# 1. Install foundryctl (SigNoz's deployment tool)
+curl -fsSL https://signoz.io/foundry.sh | bash
+
+# 2. Create a deployment descriptor
+cat > casting.yaml <<'EOF'
+apiVersion: v1alpha1
+kind: Installation
+metadata:
+  name: signoz
+spec:
+  deployment:
+    flavor: compose
+    mode: docker
+EOF
+
+# 3. Deploy the stack
+foundryctl cast -f casting.yaml
 ```
 
-Wait ~60 seconds for ClickHouse to initialise, then open **http://localhost:3301**. On first run you will be prompted to create an admin account.
+Wait for the containers to start, then open **http://localhost:8080**. On first run you will be prompted to create an admin account.
 
 Full SigNoz setup, verification, and dashboard instructions are in [`signoz/README.md`](signoz/README.md).
 
