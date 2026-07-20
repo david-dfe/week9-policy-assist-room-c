@@ -27,7 +27,7 @@ dev = [
     "bandit[toml]>=1.7",
     "pip-audit>=2.7",
     "pre-commit>=4.0",
-    "gunicorn>=23,<24",
+    "gunicorn>=23,<27",
     "types-PyYAML",
     "types-requests",
 ]
